@@ -65,7 +65,7 @@ a {
 }
 
 .logo-wrap {
-  width: 198px;
+  width: 220px;
   height: 60px;
   display: flex;
   align-items: center;
@@ -74,10 +74,15 @@ a {
 }
 
 .logo {
-  width: 186px;
+  width: 210px;
   height: auto;
-  margin-top: 66px;
+  margin-top: 0;
+  object-fit: initial;
+  object-position: left center;
   transform: none;
+  position: relative;
+  top: 33px;
+  display: block;
   image-rendering: -webkit-optimize-contrast;
 }
 
@@ -90,6 +95,16 @@ a {
   font-weight: 600;
   letter-spacing: 0.6px;
   text-transform: uppercase;
+}
+
+.phone-link {
+  display: inline-block;
+  line-height: 1.2;
+}
+
+.phone-link:hover,
+.phone-link:focus-visible {
+  text-decoration: underline;
 }
 
 .social-links {
@@ -635,8 +650,11 @@ button.ghost {
   }
 
   .logo {
-    width: 156px;
+    width: 170px;
+    height: auto;
     margin-top: 0;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .top-actions {
