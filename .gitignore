@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and temp
+*.log
+*.tmp
+*.temp
+
+# Archives / local bundles
+*.zip
+*.rar
+*.7z
+
+# Python cache (if local scripts are used)
+__pycache__/
+*.py[cod]
+
+# Keep local media drops outside git by default
+# Remove these lines if you intentionally want to version uploads
+uploads/
+local-assets/
