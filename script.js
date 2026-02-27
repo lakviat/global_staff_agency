@@ -1,5 +1,5 @@
 const WHATSAPP_NUMBER = "996227773787";
-const JOB_APPLICATION_EMAIL = "globalstockagencykg@gmail.com";
+const JOB_APPLICATION_EMAIL = "globalstaffagencykg@gmail.com";
 const FALLBACK_DIAL_CODES = {
   Kyrgyzstan: "+996",
   Kazakhstan: "+7",
