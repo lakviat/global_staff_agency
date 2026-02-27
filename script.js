@@ -1,5 +1,5 @@
 const WHATSAPP_NUMBER = "996227773787";
-const JOB_APPLICATION_EMAIL = "globalstaffagencykg@gmail.com";
+const WEB3FORMS_ACCESS_KEY = "371dd7f4-0e84-4baa-9d3b-ffda8b2f6660";
 const FALLBACK_DIAL_CODES = {
   Kyrgyzstan: "+996",
   Kazakhstan: "+7",
@@ -75,14 +75,6 @@ const buildMessage = (title, data) => {
 const openWhatsApp = (message) => {
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   window.open(url, "_blank", "noopener");
-};
-
-const readJsonSafe = async (response) => {
-  try {
-    return await response.json();
-  } catch (error) {
-    return null;
-  }
 };
 
 const normalizeDialCode = (idd) => {
@@ -166,31 +158,25 @@ if (jobForm) {
     const formData = new FormData(jobForm);
 
     const submitButton = jobForm.querySelector('button[type="submit"]');
+    const originalText = submitButton ? submitButton.textContent : "";
     if (submitButton) {
+      submitButton.textContent = "Sending...";
       submitButton.disabled = true;
     }
 
     try {
-      formData.append("_subject", "New Job Application");
-      formData.append("_captcha", "false");
-      formData.append("_template", "table");
+      formData.append("access_key", WEB3FORMS_ACCESS_KEY);
+      formData.append("subject", "New Job Application");
+      formData.append("from_name", "Global Staff Agency Website");
 
-      const response = await fetch(`https://formsubmit.co/ajax/${JOB_APPLICATION_EMAIL}`, {
+      const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        headers: {
-          Accept: "application/json",
-        },
         body: formData,
       });
-      const payload = await readJsonSafe(response);
-      const deliveryConfirmed =
-        payload && (payload.success === true || payload.success === "true");
 
-      if (!response.ok || !deliveryConfirmed) {
-        const providerMessage =
-          (payload && (payload.message || payload.error)) ||
-          "Email provider rejected the request.";
-        throw new Error(providerMessage);
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || "Email provider rejected the request.");
       }
 
       alert("Your application was sent successfully.");
@@ -199,9 +185,10 @@ if (jobForm) {
         phoneField.dataset.autoPrefix = "";
       }
     } catch (error) {
-      alert("We could not submit your application right now. Please try again in a few minutes.");
+      alert("Error: " + (error instanceof Error ? error.message : "Something went wrong. Please try again."));
     } finally {
       if (submitButton) {
+        submitButton.textContent = originalText;
         submitButton.disabled = false;
       }
     }
