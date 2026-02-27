@@ -1,5 +1,5 @@
 const WHATSAPP_NUMBER = "996227773787";
-const JOB_APPLICATION_EMAIL = "globalstaffagency@gmail.com";
+const JOB_APPLICATION_EMAIL = "globalstockagencykg@gmail.com";
 const FALLBACK_DIAL_CODES = {
   Kyrgyzstan: "+996",
   Kazakhstan: "+7",
@@ -77,10 +77,12 @@ const openWhatsApp = (message) => {
   window.open(url, "_blank", "noopener");
 };
 
-const openMailtoFallback = (data) => {
-  const subject = "Job Application";
-  const body = buildMessage("Job Application", data);
-  window.location.href = `mailto:${JOB_APPLICATION_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+const readJsonSafe = async (response) => {
+  try {
+    return await response.json();
+  } catch (error) {
+    return null;
+  }
 };
 
 const normalizeDialCode = (idd) => {
@@ -162,25 +164,17 @@ if (jobForm) {
   jobForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(jobForm);
-    const applicationData = {
-      "Full Name": formData.get("full_name"),
-      Phone: formData.get("phone"),
-      Citizenship: formData.get("citizenship"),
-      Location: formData.get("location"),
-      Category: formData.get("category"),
-      Description: formData.get("description"),
-    };
 
     const submitButton = jobForm.querySelector('button[type="submit"]');
     if (submitButton) {
       submitButton.disabled = true;
     }
 
-    formData.append("_subject", "New Job Application");
-    formData.append("_captcha", "false");
-    formData.append("_template", "table");
-
     try {
+      formData.append("_subject", "New Job Application");
+      formData.append("_captcha", "false");
+      formData.append("_template", "table");
+
       const response = await fetch(`https://formsubmit.co/ajax/${JOB_APPLICATION_EMAIL}`, {
         method: "POST",
         headers: {
@@ -188,9 +182,15 @@ if (jobForm) {
         },
         body: formData,
       });
+      const payload = await readJsonSafe(response);
+      const deliveryConfirmed =
+        payload && (payload.success === true || payload.success === "true");
 
-      if (!response.ok) {
-        throw new Error("Failed to send application email.");
+      if (!response.ok || !deliveryConfirmed) {
+        const providerMessage =
+          (payload && (payload.message || payload.error)) ||
+          "Email provider rejected the request.";
+        throw new Error(providerMessage);
       }
 
       alert("Your application was sent successfully.");
@@ -199,7 +199,7 @@ if (jobForm) {
         phoneField.dataset.autoPrefix = "";
       }
     } catch (error) {
-      openMailtoFallback(applicationData);
+      alert("We could not submit your application right now. Please try again in a few minutes.");
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
