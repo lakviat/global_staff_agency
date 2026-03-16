@@ -27,6 +27,15 @@ const FALLBACK_DIAL_CODES = {
   Bahrain: "+973",
   Oman: "+968",
 };
+const COMMON_DIAL_CODES = [...new Set(Object.values(FALLBACK_DIAL_CODES))].sort((a, b) =>
+  a.localeCompare(b, undefined, { numeric: true })
+);
+const JOB_CATEGORY_PREFILL = {
+  "Nannies / Housekeepers": "Domestic Helper",
+  HoReCa: "HoReCa",
+  "Construction Workers": "Construction",
+  "Garment Industry": "Garment industry",
+};
 
 const openButtons = document.querySelectorAll("[data-modal-open]");
 const closeButtons = document.querySelectorAll("[data-modal-close]");
@@ -96,65 +105,77 @@ const resolveCountryDialCode = async (country) => {
 
 const jobForm = document.getElementById("job-application");
 if (jobForm) {
-  const citizenshipField = jobForm.querySelector('select[name="citizenship"]');
+  const locationField = jobForm.querySelector('select[name="location"]');
   const phoneField = jobForm.querySelector('input[name="phone"]');
+  const phoneCodeField = jobForm.querySelector('select[name="phone_code"]');
+  const phoneLocalField = jobForm.querySelector('input[name="phone_local"]');
   let requestToken = 0;
 
-  const setPhonePrefix = (dialCode) => {
-    if (!phoneField) return;
-    const currentValue = phoneField.value.trim();
-    const previousAutoPrefix = phoneField.dataset.autoPrefix || "";
-
-    if (!dialCode) {
-      if (!currentValue || currentValue === previousAutoPrefix) {
-        phoneField.value = "";
-      }
-      phoneField.dataset.autoPrefix = "";
-      return;
-    }
-
-    if (!currentValue) {
-      phoneField.value = `${dialCode} `;
-      phoneField.dataset.autoPrefix = dialCode;
-      return;
-    }
-
-    if (previousAutoPrefix && currentValue.startsWith(previousAutoPrefix)) {
-      phoneField.value = `${dialCode}${currentValue.slice(previousAutoPrefix.length)}`;
-      phoneField.dataset.autoPrefix = dialCode;
-    }
+  const ensurePhoneCodeOptions = () => {
+    if (!phoneCodeField || phoneCodeField.options.length > 1) return;
+    COMMON_DIAL_CODES.forEach((dialCode) => {
+      const option = document.createElement("option");
+      option.value = dialCode;
+      option.textContent = dialCode;
+      phoneCodeField.append(option);
+    });
   };
 
-  const updatePhonePrefixByCitizenship = async () => {
-    if (!citizenshipField) return;
-    const country = citizenshipField.value;
+  const setPhoneCode = (dialCode) => {
+    if (!phoneCodeField) return;
+    ensurePhoneCodeOptions();
+    if (!dialCode) {
+      phoneCodeField.value = "";
+      return;
+    }
+    const existing = [...phoneCodeField.options].some((option) => option.value === dialCode);
+    if (!existing) {
+      const option = document.createElement("option");
+      option.value = dialCode;
+      option.textContent = dialCode;
+      phoneCodeField.append(option);
+    }
+    phoneCodeField.value = dialCode;
+  };
+
+  const updatePhoneCodeByLocation = async () => {
+    if (!locationField) return;
+    const country = locationField.value;
     if (!country || country === "Other") {
-      setPhonePrefix("");
+      setPhoneCode("");
       return;
     }
 
     const currentRequest = ++requestToken;
     const fallbackCode = FALLBACK_DIAL_CODES[country] || "";
     if (fallbackCode) {
-      setPhonePrefix(fallbackCode);
+      setPhoneCode(fallbackCode);
     }
 
     try {
       const resolvedCode = await resolveCountryDialCode(country);
       if (currentRequest !== requestToken || !resolvedCode) return;
-      setPhonePrefix(resolvedCode);
+      setPhoneCode(resolvedCode);
     } catch (error) {
       if (currentRequest !== requestToken) return;
-      if (fallbackCode) setPhonePrefix(fallbackCode);
+      if (fallbackCode) setPhoneCode(fallbackCode);
     }
   };
 
-  if (citizenshipField && phoneField) {
-    citizenshipField.addEventListener("change", updatePhonePrefixByCitizenship);
+  ensurePhoneCodeOptions();
+
+  if (locationField && phoneCodeField) {
+    locationField.addEventListener("change", updatePhoneCodeByLocation);
   }
 
   jobForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (phoneField && phoneCodeField && phoneLocalField) {
+      const fullPhone = [phoneCodeField.value.trim(), phoneLocalField.value.trim()]
+        .filter(Boolean)
+        .join(" ");
+      phoneField.value = fullPhone;
+    }
     const formData = new FormData(jobForm);
 
     const submitButton = jobForm.querySelector('button[type="submit"]');
@@ -168,6 +189,7 @@ if (jobForm) {
       formData.append("access_key", WEB3FORMS_ACCESS_KEY);
       formData.append("subject", "New Job Application");
       formData.append("from_name", "Global Staff Agency Website");
+      formData.append("replyto", formData.get("email"));
 
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
@@ -182,7 +204,10 @@ if (jobForm) {
       alert("Your application was sent successfully.");
       jobForm.reset();
       if (phoneField) {
-        phoneField.dataset.autoPrefix = "";
+        phoneField.value = "";
+      }
+      if (phoneCodeField) {
+        phoneCodeField.value = "";
       }
     } catch (error) {
       alert("Error: " + (error instanceof Error ? error.message : "Something went wrong. Please try again."));
@@ -213,11 +238,29 @@ if (visaForm) {
   });
 }
 
-const jobButtons = document.querySelectorAll(".job-actions button");
-jobButtons.forEach((button) => {
+const applyButtons = document.querySelectorAll(".job-actions .primary");
+applyButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    const job = button.dataset.job || "Job Opportunity";
-    const message = buildMessage("Job Interest", { Job: job });
-    openWhatsApp(message);
+    const job = button.dataset.job || "";
+    const jobCategoryField = document.querySelector('#job-application select[name="category"]');
+    const fullNameField = document.querySelector('#job-application input[name="full_name"]');
+
+    if (jobCategoryField) {
+      const mappedCategory = JOB_CATEGORY_PREFILL[job] || "";
+      if (mappedCategory) {
+        jobCategoryField.value = mappedCategory;
+      }
+    }
+
+    const formSection = document.getElementById("top");
+    if (formSection) {
+      formSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    window.setTimeout(() => {
+      if (fullNameField) {
+        fullNameField.focus();
+      }
+    }, 350);
   });
 });

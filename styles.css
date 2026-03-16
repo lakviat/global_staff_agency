@@ -232,6 +232,17 @@ textarea {
   font-size: 14px;
 }
 
+.phone-row {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 10px;
+}
+
+.phone-row select,
+.phone-row input {
+  min-width: 0;
+}
+
 .file-field input {
   padding: 6px 8px;
 }
